@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+  <!-- Ajoute ce code dans ton fichier index.html -->
+<!-- Formulaire d'ajout/modification -->
+<h2>Ajouter ou modifier un produit</h2>
+<form id="addProduitForm">
+    <input type="hidden" name="id" id="form-id">
+    <input type="text" name="nom" id="form-nom" placeholder="Nom" required>
+    <input type="number" name="prix" id="form-prix" placeholder="Prix" required>
+    <input type="number" name="quantite" id="form-quantite" placeholder="Quantité" required>
+    <button type="submit" id="form-submit">Ajouter</button>
+</form>
+
+<!-- Table des produits -->
+<h2>Liste des produits</h2>
+<table id="produitsTable" border="1">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Nom</th>
+            <th>Prix</th>
+            <th>Quantité</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+let editMode = false;
+
+async function loadProduits() {
+    const response = await fetch('/api/produits');
+    const produits = await response.json();
+    const tbody = document.querySelector('#produitsTable tbody');
+    tbody.innerHTML = '';
+    produits.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${p.id}</td>
+            <td>${p.nom}</td>
+            <td>${p.prix}</td>
+            <td>${p.quantite}</td>
+            <td>
+                <button onclick="fillForm(${p.id}, '${p.nom}', ${p.prix}, ${p.quantite})">modifier</button>
+                <button onclick="deleteProduit(${p.id})">Supprimer</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+loadProduits();
+
+// Remplir le formulaire avec les données du produit
+function fillForm(id, nom, prix, quantite) {
+    document.getElementById('form-id').value = id;
+    document.getElementById('form-nom').value = nom;
+    document.getElementById('form-prix').value = prix;
+    document.getElementById('form-quantite').value = quantite;
+    document.getElementById('form-submit').textContent = "Modifier";
+    editMode = true;
+}
+
+// Ajouter ou modifier un produit
+document.getElementById('addProduitForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const id = document.getElementById('form-id').value;
+    const nom = document.getElementById('form-nom').value;
+    const prix = document.getElementById('form-prix').value;
+    const quantite = document.getElementById('form-quantite').value;
+    const data = { nom, prix: Number(prix), quantite: Number(quantite) };
+
+    if (editMode && id) {
+        // Modifier
+        const response = await fetch(`/api/produits?id=${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (response.ok) {
+            alert('Produit modifié !');
+        } else {
+            alert('Erreur lors de la modification');
+        }
+    } else {
+        // Ajouter
+        const response = await fetch('/api/produits', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (response.ok) {
+            alert('Produit ajouté !');
+        } else {
+            alert('Erreur lors de l\'ajout');
+        }
+    }
+    this.reset();
+    document.getElementById('form-submit').textContent = "Ajouter";
+    editMode = false;
+    loadProduits();
+});
+
+// Supprimer un produit
+async function deleteProduit(id) {
+    if (!confirm('Confirmer la suppression ?')) return;
+    const response = await fetch(`/api/produits?id=${id}`, {
+        method: 'DELETE'
+    });
+    if (response.ok) {
+        alert('Produit supprimé !');
+        loadProduits();
+    } else {
+        alert('Erreur lors de la suppression');
+    }
+}
+</script>
+</body>
+</html>
